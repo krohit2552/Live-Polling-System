@@ -17,6 +17,8 @@ const TeacherView = ({ onReset }) => {
   const [options, setOptions] = useState(['', '']);
   const [timeLimit, setTimeLimit] = useState(60);
 
+  const API_BASE = process.env.REACT_APP_API_BASE || (window.location.hostname === 'localhost' ? '' : 'https://live-pollingsystem.onrender.com');
+
   useEffect(() => {
     const newSocket = io('https://live-pollingsystem.onrender.com');
     setSocket(newSocket);
@@ -53,6 +55,18 @@ const TeacherView = ({ onReset }) => {
       setPollHistory(prev => [data.poll, ...prev]);
     });
 
+    // If another teacher creates a poll, reflect it
+    newSocket.on('new-poll', (poll) => {
+      setActivePoll({ ...poll, results: poll.results || {} });
+      setCanAskNewQuestion(false);
+      setParticipatingStudents([]);
+    });
+
+    // Surface socket errors
+    newSocket.on('error', (message) => {
+      console.error('Socket error:', message);
+    });
+
     // Fetch initial data
     fetchPollStatus();
     fetchPollHistory();
@@ -62,7 +76,7 @@ const TeacherView = ({ onReset }) => {
 
   const fetchPollStatus = async () => {
     try {
-      const response = await fetch('/api/poll-status');
+      const response = await fetch(`${API_BASE}/api/poll-status`);
       const data = await response.json();
       setActivePoll(data.activePoll);
       setStudentCount(data.studentCount);
@@ -75,7 +89,7 @@ const TeacherView = ({ onReset }) => {
 
   const fetchPollHistory = async () => {
     try {
-      const response = await fetch('/api/poll-history');
+      const response = await fetch(`${API_BASE}/api/poll-history`);
       const data = await response.json();
       setPollHistory(data);
     } catch (error) {

@@ -17,7 +17,7 @@ const StudentView = ({ onReset }) => {
 
   useEffect(() => {
     if (hasJoined) {
-      const newSocket = io('http://localhost:5000');
+      const newSocket = io('https://live-pollingsystem.onrender.com');
       setSocket(newSocket);
 
       // Join as student
@@ -29,6 +29,14 @@ const StudentView = ({ onReset }) => {
 
       // Socket event listeners
       newSocket.on('poll-active', (poll) => {
+        setActivePoll(poll);
+        setHasAnswered(false);
+        setSelectedAnswer(null);
+        setTimeLeft(poll.timeLimit);
+      });
+
+      // Receive newly created poll in real-time
+      newSocket.on('new-poll', (poll) => {
         setActivePoll(poll);
         setHasAnswered(false);
         setSelectedAnswer(null);
