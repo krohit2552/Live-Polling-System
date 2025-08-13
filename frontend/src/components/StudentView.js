@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { io } from 'socket.io-client';
 import ChatPopup from './ChatPopup';
 
@@ -66,15 +66,20 @@ const StudentView = ({ onReset }) => {
     }
   }, [hasJoined, studentName]);
 
+  const handleSubmitAnswer = useCallback(() => {
+    if (selectedAnswer && !hasAnswered && socket) {
+      socket.emit('submit-answer', { answer: selectedAnswer });
+      setHasAnswered(true);
+    }
+  }, [selectedAnswer, hasAnswered, socket]);
+
   useEffect(() => {
     let timer;
     if (activePoll && timeLeft > 0 && !hasAnswered) {
       timer = setInterval(() => {
         setTimeLeft(prev => {
           if (prev <= 1) {
-            if (!hasAnswered && selectedAnswer) {
-              handleSubmitAnswer();
-            }
+            handleSubmitAnswer();
             return 0;
           }
           return prev - 1;
@@ -82,7 +87,7 @@ const StudentView = ({ onReset }) => {
       }, 1000);
     }
     return () => clearInterval(timer);
-  }, [activePoll, timeLeft, hasAnswered, selectedAnswer]);
+  }, [activePoll, timeLeft, hasAnswered, handleSubmitAnswer]);
 
   const handleJoin = () => {
     if (studentName.trim()) {
@@ -92,12 +97,7 @@ const StudentView = ({ onReset }) => {
     }
   };
 
-  const handleSubmitAnswer = () => {
-    if (selectedAnswer && !hasAnswered) {
-      socket.emit('submit-answer', { answer: selectedAnswer });
-      setHasAnswered(true);
-    }
-  };
+  
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { io } from 'socket.io-client';
 import ChatPopup from './ChatPopup';
 
@@ -18,6 +18,29 @@ const TeacherView = ({ onReset }) => {
   const [timeLimit, setTimeLimit] = useState(60);
 
   const API_BASE = process.env.REACT_APP_API_BASE || (window.location.hostname === 'localhost' ? '' : 'https://live-pollingsystem.onrender.com');
+
+  const fetchPollStatus = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_BASE}/api/poll-status`);
+      const data = await response.json();
+      setActivePoll(data.activePoll);
+      setStudentCount(data.studentCount);
+      setCanAskNewQuestion(data.canAskNewQuestion);
+      setParticipatingStudents(data.participatingStudents || []);
+    } catch (error) {
+      console.error('Error fetching poll status:', error);
+    }
+  }, [API_BASE]);
+
+  const fetchPollHistory = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_BASE}/api/poll-history`);
+      const data = await response.json();
+      setPollHistory(data);
+    } catch (error) {
+      console.error('Error fetching poll history:', error);
+    }
+  }, [API_BASE]);
 
   useEffect(() => {
     const newSocket = io('https://live-pollingsystem.onrender.com');
@@ -41,10 +64,8 @@ const TeacherView = ({ onReset }) => {
     });
 
     newSocket.on('poll-results-update', (data) => {
-      if (activePoll) {
-        setActivePoll(prev => ({ ...prev, results: data.results }));
-        setParticipatingStudents(data.participatingStudents);
-      }
+      setActivePoll(prev => (prev ? { ...prev, results: data.results } : prev));
+      setParticipatingStudents(data.participatingStudents);
     });
 
     newSocket.on('poll-ended', (data) => {
@@ -72,30 +93,7 @@ const TeacherView = ({ onReset }) => {
     fetchPollHistory();
 
     return () => newSocket.close();
-  }, []);
-
-  const fetchPollStatus = async () => {
-    try {
-      const response = await fetch(`${API_BASE}/api/poll-status`);
-      const data = await response.json();
-      setActivePoll(data.activePoll);
-      setStudentCount(data.studentCount);
-      setCanAskNewQuestion(data.canAskNewQuestion);
-      setParticipatingStudents(data.participatingStudents || []);
-    } catch (error) {
-      console.error('Error fetching poll status:', error);
-    }
-  };
-
-  const fetchPollHistory = async () => {
-    try {
-      const response = await fetch(`${API_BASE}/api/poll-history`);
-      const data = await response.json();
-      setPollHistory(data);
-    } catch (error) {
-      console.error('Error fetching poll history:', error);
-    }
-  };
+  }, [fetchPollHistory, fetchPollStatus]);
 
   const handleCreatePoll = () => {
     if (!question.trim() || options.some(opt => !opt.trim())) {
