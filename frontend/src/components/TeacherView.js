@@ -18,7 +18,7 @@ const TeacherView = ({ onReset }) => {
   const [timeLimit, setTimeLimit] = useState(60);
 
   useEffect(() => {
-    const newSocket = io('http://localhost:5000');
+    const newSocket = io('https://live-pollingsystem.onrender.com');
     setSocket(newSocket);
 
     // Socket event listeners
